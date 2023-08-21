@@ -106,8 +106,8 @@ def priors_for_cps(
 
     ### Positions
     std_Delta_pos = interval_cps / 3
-    Delta_pos = pm.Normal(f"Delta_{name_positions}", 0, std_Delta_pos, dims=(cp_dim,))
-    positions = Delta_pos + np.arange(1, num_cps + 1) * interval_cps
+    Delta_pos = pm.Normal(f"Delta_{name_positions}", 0, 1, dims=(cp_dim,))
+    positions = Delta_pos * std_Delta_pos + np.arange(1, num_cps + 1) * interval_cps
     pm.Deterministic(f"{name_positions}", positions)
 
     ### Magnitudes:
@@ -122,9 +122,10 @@ def priors_for_cps(
     mean_duration_len = interval_cps / 3
     std_duration_len = interval_cps / 6
     softplus_scaling = interval_cps / 12
-    durations_raw = pm.Normal(
+    durations_raw2 = pm.Normal(
         f"{name_durations}_raw", mean_duration_len, std_duration_len, dims=(cp_dim,)
     )
+    durations_raw = mean_duration_len + durations_raw2 * std_duration_len
     durations = pm.Deterministic(
         f"{name_durations}",
         pt.softplus(durations_raw / softplus_scaling) * softplus_scaling,
