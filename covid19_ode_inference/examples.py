@@ -87,11 +87,12 @@ def model_cases_seropositivity(
         )
         beta_t = R0 * gamma * reproduction_scale_t
 
-        I_0_raw = pm.LogNormal("I_0_raw", np.log(100), 2) if not sim_model else 100
-        I_0 = pm.Deterministic("I_0", I_0_raw / eta_report[0])
-        # I_0 = I_0_raw
-        S_0 = N - I_0
-        R_0 = 0
+        frac_S_0 = pm.Bound("frac_S_0", dist=pm.Logistic.dist(100), lower=0, upper=100)/100 if not sim_model else 0.99
+        frac_R_0 = pm.Bound("frac_R_0", dist=pm.Logistic.dist(0), lower=0, upper=100)/100 if not sim_model else 0.
+
+        S_0 = frac_S_0 * N
+        R_0 = frac_R_0 * N
+        I_0 = pm.Deterministic("I_0", N - S_0 - R_0)
 
         pm.Deterministic("beta_t", beta_t, dims=("t_solve_ODE",))
 
