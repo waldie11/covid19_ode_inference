@@ -23,6 +23,7 @@ def model_cases_seropositivity(
     fact_subs=4,
     num_cps_reporting=3,
     num_cps_R=8,
+    truncater=pm.Bound, # pm.Truncated for toys
 ):
     end_sim = max(t_cases_data)
 
@@ -87,8 +88,8 @@ def model_cases_seropositivity(
         )
         beta_t = R0 * gamma * reproduction_scale_t
 
-        frac_S_0 = pm.Bound("frac_S_0", dist=pm.Logistic.dist(100), lower=0, upper=100)/100 if not sim_model else 0.99
-        frac_R_0 = pm.Bound("frac_R_0", dist=pm.Logistic.dist(0), lower=0, upper=100)/100 if not sim_model else 0.
+        frac_S_0 = truncater("frac_S_0", dist=pm.Logistic.dist(100), lower=0, upper=100)/100 if not sim_model else 0.99
+        frac_R_0 = truncater("frac_R_0", dist=pm.Logistic.dist(0), lower=0, upper=100)/100 if not sim_model else 0.
 
         S_0 = frac_S_0 * N
         R_0 = frac_R_0 * N
