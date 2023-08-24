@@ -138,7 +138,7 @@ def model_cases_seropositivity(
         new_reported = new_positive * eta_report
         pm.Deterministic("new_reported", new_reported)
 
-        error_rep = pm.HalfCauchy("error_report", beta=1)
+        error_rep = truncater("error_report", dist=pm.Logistic.dist(-1), lower=0)
         pm.Normal(
             "new_reported_data",
             new_reported,
