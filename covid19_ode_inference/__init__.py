@@ -1,5 +1,6 @@
 from . import pytensor_op
 from . import comp_model
+from . import custom_sample
 from . import slow_modulation
 from . import examples
 from . import tools
