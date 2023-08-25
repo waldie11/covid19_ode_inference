@@ -155,6 +155,7 @@ def my_sample_numpyro_nuts(
         postprocess_fn=None,
         chain_method=chain_method,
         progress_bar=progressbar,
+        jit_model_args=True,
     )
     # mcmc = MCMC(NUTS(model), num_warmup=100, num_samples=100)
     # mcmc.run(random.PRNGKey(0))
