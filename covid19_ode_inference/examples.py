@@ -29,7 +29,7 @@ def model_cases_seropositivity(
 ):
     end_sim = max(t_cases_data)
 
-    t_solve_ODE = np.arange(-20, end_sim, fact_subs)
+    t_solve_ODE = np.arange(-20, end_sim+fact_subs, fact_subs)
 
     coords = {
         **get_cpkwargs(cp_reporting_kwargs, t_cases_data, "reporting"),
