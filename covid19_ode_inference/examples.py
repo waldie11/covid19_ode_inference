@@ -44,11 +44,18 @@ def model_cases_seropositivity_dead(
     with pm.Model(coords=coords) as model:
         R0 = pm.LogNormal("R0", np.log(1), 1) if not sim_model else 1.2
         inv_gamma = (
-            pm.Gamma("inv_gamma", alpha=140, beta=1 / 0.1)
+            pm.Gamma("inv_gamma", alpha=40, beta=1 / 0.1)
+            if not sim_model
+            else pt.as_tensor_variable(4)
+        )
+        gamma = pm.Deterministic("gamma", 1 / inv_gamma)
+
+        inv_epsilon = (
+            pm.Gamma("inv_epsilon", alpha=140, beta=1 / 0.1)
             if not sim_model
             else pt.as_tensor_variable(14)
         )
-        gamma = pm.Deterministic("gamma", 1 / inv_gamma)
+        epsilon = pm.Deterministic("epsilon", 1 / inv_epsilon)
 
         eta_base = pm.Normal("eta_base", 0, 1) if not sim_model else 0.3
         t_pos_rep, Delta_rhos_rep, transients_rep = cov19_ode.priors_for_cps(
@@ -116,23 +123,25 @@ def model_cases_seropositivity_dead(
         frac_S_0 = truncater("frac_S_0", dist=pm.Logistic.dist(100), lower=0, upper=100)/100 if not sim_model else 0.99
         frac_R_0 = truncater("frac_R_0", dist=pm.Logistic.dist(0), lower=0, upper=100)/100 if not sim_model else 0.
 
-        S_0 = frac_S_0 * N
+        Naive_0 = frac_S_0 * N
+        S_0 = 0.
         R_0 = frac_R_0 * N
         I_0 = pm.Deterministic("I_0", N - S_0 - R_0)
         D_0 = truncater("D_0", dist=pm.Logistic.dist(0), lower=0) if not sim_model else 0.
 
         pm.Deterministic("beta_t", beta_t, dims=("t_solve_ODE",))
 
-        def SIRD(t, y, args):
-            S, I, R, D = y
-            (β, δ), (γ, N_in) = args
-            N = S + I + R
-            dS = -β(t) * I * S / N
+        def NSIRSD(t, y, args):
+            Naive, S, I, R, D = y
+            (β, δ), (γ, ε, Npop) = args
+            # N = S + I + R
+            dNaive = -β(t) * I * Naive / Npop
+            dS = -β(t) * I * S / Npop + ε * R
             # dI = β(t) * I * S / N - γ * I - δ(t) * I
-            dR = γ * I
+            dR = γ * I - ε * R
             dD = δ(t) * I
-            dI = -dS - dR - dD
-            return dS, dI, dR, dD
+            dI = -dNaive -dS - dR - dD
+            return dNaive, dS, dI, dR, dD
 
         integrator = cov19_ode.CompModelsIntegrator(
             ts_out=t_solve_ODE,
@@ -143,24 +152,24 @@ def model_cases_seropositivity_dead(
             solver=diffrax.Bosh3(),  # a 3rd order method
             adjoint=diffrax.RecursiveCheckpointAdjoint(checkpoints=len(t_solve_ODE)),
         )
-        SIRD_integrator = integrator.get_Op(
-            SIRD, return_shapes=[() for _ in range(4)], name="SIRD"
+        NSIRSD_integrator = integrator.get_Op(
+            NSIRSD, return_shapes=[() for _ in range(5)], name="NSIRSD"
         )
 
-        S, I, R, D = SIRD_integrator(
-            y0=(S_0, I_0, R_0, D_0), arg_t=(beta_t, ifr_t), constant_args=(gamma, N)
+        Naive, S, I, R, D = NSIRSD_integrator(
+            y0=(Naive_0, S_0, I_0, R_0, D_0), arg_t=(beta_t, ifr_t), constant_args=(gamma, epsilon, N)
         )
 
+        pm.Deterministic("Naive", S, dims=("t_solve_ODE",))
         pm.Deterministic("S", S, dims=("t_solve_ODE",))
         pm.Deterministic("I", I, dims=("t_solve_ODE",))
         pm.Deterministic("R", R, dims=("t_solve_ODE",))
         pm.Deterministic("D", D, dims=("t_solve_ODE",))
 
-        Δt = np.diff(t_solve_ODE)
         new_positive = cov19_ode.interpolate(
-            ts_in=t_solve_ODE[:-1] + 0.5 * Δt,
+            ts_in=t_solve_ODE,
             ts_out=t_cases_data,
-            y=-pt.diff(S) / Δt,
+            y=beta_t * (Naive+S) * I / N,
             ret_gradients=False,
             method="cubic",
         )
@@ -180,7 +189,7 @@ def model_cases_seropositivity_dead(
         sero_at_data = cov19_ode.interpolate(
             ts_in=t_solve_ODE,
             ts_out=t_seropos_data,
-            y=R,
+            y=N-Naive,
             ret_gradients=False,
             method="cubic",
         )
