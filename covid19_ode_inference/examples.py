@@ -12,6 +12,7 @@ import diffrax
 
 import covid19_ode_inference as cov19_ode
 
+from covid19_ode_inference.slow_modulation import get_cpkwargs
 
 def model_cases_seropositivity(
     N,
@@ -21,8 +22,9 @@ def model_cases_seropositivity(
     t_seropos_data,
     sim_model=False,
     fact_subs=4,
-    num_cps_reporting=3,
-    num_cps_R=8,
+    cp_reporting_kwargs=dict(num_cps=3),
+    cp_R_kwargs=dict(num_cps=8),
+    cp_fatality_kwargs=dict(num_cps=1),
     truncater=pm.Bound, # pm.Truncated for toys
 ):
     end_sim = max(t_cases_data)
@@ -30,8 +32,9 @@ def model_cases_seropositivity(
     t_solve_ODE = np.arange(-20, end_sim, fact_subs)
 
     coords = {
-        "cp_reporting_id": np.arange(num_cps_reporting),
-        "cp_R_id": np.arange(num_cps_R),
+        **get_cpkwargs(cp_reporting_kwargs, t_cases_data, "reporting"),
+        **get_cpkwargs(cp_R_kwargs, t_cases_data, "R"),
+        **get_cpkwargs(cp_fatality_kwargs, t_cases_data, "fatality"),
         "t_solve_ODE": t_solve_ODE,
         "t_seropos_data": t_seropos_data,
         "t_cases_data": t_cases_data,
@@ -48,8 +51,7 @@ def model_cases_seropositivity(
 
         eta_base = pm.Normal("eta_base", 0, 1) if not sim_model else 0.3
         t_pos_rep, Delta_rhos_rep, transients_rep = cov19_ode.priors_for_cps(
-            cp_dim="cp_reporting_id",
-            time_dim="t_cases_data",
+            name="reporting",
             name_positions="t_pos_rep",
             name_magnitudes="Delta_rhos",
             name_durations="transients_rep",
@@ -69,8 +71,7 @@ def model_cases_seropositivity(
         pm.Deterministic("eta_report", eta_report, dims=("t_cases_data",))
 
         t_pos_R, Delta_rhos_R, transients_R = cov19_ode.priors_for_cps(
-            cp_dim="cp_R_id",
-            time_dim="t_solve_ODE",
+            name="R",
             name_positions="t_pos_R",
             name_magnitudes="Delta_rhos_R",
             name_durations="transients_R",

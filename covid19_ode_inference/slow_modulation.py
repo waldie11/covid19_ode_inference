@@ -53,9 +53,17 @@ def sigmoidal_changepoints(
     return modulation_t
 
 
+def get_cpkwargs(d,time_arr,name):
+    num_cps = d.get("num_cps",1)
+    cp_interval = float(d.get("cp_interval",(max(time_arr) - min(time_arr)) / (num_cps + 1)))
+    d_out = {}
+    d_out[name+"_id"] = np.arange(num_cps)
+    d_out["cp_interval_"+name] = [cp_interval]
+    return d_out
+    return num_cps, cp_interval
+
 def priors_for_cps(
-    cp_dim,
-    time_dim,
+    name,
     name_positions,
     name_magnitudes,
     name_durations,
@@ -72,12 +80,9 @@ def priors_for_cps(
 
     Parameters
     ----------
-    cp_dim : str
-        dimension of the pm.Model for the changepoints. Define it by passing
-        coords={cp_dim: np.arange(num_cps)} to pm.Model at creation. The length of this
-        dimension determines the number of changepoints.
-    time_dim : str
-        dimension of the pm.Model for the time.
+    name : str
+        name in the pm.Model for the changepoints. It will be used to store dims and
+        cp interval in model coords
     name_positions : str
         name under which the positions of the changepoints are stored in pm.Model
     name_magnitudes : str
@@ -100,9 +105,9 @@ def priors_for_cps(
     """
     model = pm.modelcontext(model)
 
-    time_arr = model.coords[time_dim]
+    cp_dim = name+"_id"
     num_cps = len(model.coords[cp_dim])
-    interval_cps = (max(time_arr) - min(time_arr)) / (num_cps + 1)
+    interval_cps = model.coords["cp_interval_"+name][0]
 
     ### Positions
     std_Delta_pos = interval_cps / 3
