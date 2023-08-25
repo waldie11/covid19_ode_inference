@@ -375,24 +375,30 @@ class CompModelsIntegrator:
 
         """
 
+        def arg_t_extractor(arg_t):
+            if not callable(arg_t):
+                arg_t_func = interpolation_func(
+                    ts=self.ts_arg, x=arg_t, method=self.interp
+                ).evaluate
+                return arg_t_func
+            return arg_t
+
         def integrator(y0, arg_t=None, constant_args=None):
             if arg_t is not None:
-                if not callable(arg_t):
-                    arg_t_func = interpolation_func(
-                        ts=self.ts_arg, x=arg_t, method=self.interp
-                    ).evaluate
+                if isinstance(arg_t, tuple):
+                    arg_t_funcs = tuple(map(arg_t_extractor, arg_t))
                 else:
-                    arg_t_func = arg_t
+                    arg_t_funcs = arg_t_extractor(arg_t)
 
             term = diffrax.ODETerm(ODE)
 
             if arg_t is None:
                 args = constant_args
             elif constant_args is None:
-                args = arg_t_func
+                args = arg_t_funcs
             else:
                 args = (
-                    arg_t_func,
+                    arg_t_funcs,
                     constant_args,
                 )
             saveat = diffrax.SaveAt(ts=self.ts_out)
