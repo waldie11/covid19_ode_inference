@@ -63,7 +63,7 @@ def model_cases_seropositivity_dead(
             name_positions="t_pos_rep",
             name_magnitudes="Delta_rhos",
             name_durations="transients_rep",
-            beta_magnitude=1,
+            beta_magnitude=100,#1/0.01,
             sigma_magnitude_fix=0.1 if sim_model else None,
         )
 
