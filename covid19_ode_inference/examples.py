@@ -205,7 +205,7 @@ def model_cases_seropositivity_dead(
         sero_at_cases = cov19_ode.interpolate(
             ts_in=t_solve_ODE,
             ts_out=t_cases_data,
-            y=R,
+            y=N-Naive,
             ret_gradients=False,
             method="cubic",
         )
