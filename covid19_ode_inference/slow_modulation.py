@@ -52,6 +52,48 @@ def sigmoidal_changepoints(
 
     return modulation_t
 
+def sigmoidal_changepoints_invt(
+    ts_out, positions_cp, magnitudes_cp, durations_cp, reorder_cps=False
+):
+    """
+    Modulation of a time series by sigmoidal changepoints. The changepoints are defined
+    by their position, magnitude and duration. The resulting equation is:
+    $$ f(t) = \sum_{i=1}^{num_cps} \frac{magnitudes[i]}{1 + exp(-4 * slope[i] * (t - positions[i]))} $$
+    where $slope[i] = magnitudes[i] / durations[i]$
+
+    Parameters
+    ----------
+    t_out: 1d numpy array
+        timepoints where modulation is evaluated, shape: (time, )
+    t_cp: nd-array
+        timepoints of the changepoints, shape: (num_cps, further dims...)
+    magnitudes: nd-array
+        magnitude of the changepoints, shape: (num_cps, further dims...)
+    durations: nd-array
+        magnitude of the changepoints, shape: (num_cps, further dims...)
+    reorder_cps: bool, default=False
+        reorder changepoints such that their timepoints are linearly increasing
+    Returns
+    -------
+        nd-array, shape: (time, further dims...)
+
+    """
+    if reorder_cps:
+        order = pt.argsort(positions_cp, axis=0)
+        positions_cp = positions_cp[order, ...]
+        magnitudes_cp = magnitudes_cp[order, ...]
+        durations_cp = durations_cp[order, ...]
+
+    # add necessary empty dimensions to time axis
+    ts_out = np.expand_dims(ts_out, axis=tuple(range(1, max(1, positions_cp.ndim) + 1)))
+    slope_cp = 1 / durations_cp
+    modulation_t = (
+        pt.sigmoid((np.max(ts_out)- ts_out -positions_cp ) * slope_cp * 4) * magnitudes_cp
+    )  # 4*slope_cp because the derivative of the sigmoid at zero is 1/4, we want to set it to slope_cp
+
+    modulation_t = pt.sum(modulation_t, axis=1)
+
+    return modulation_t
 
 def get_cpkwargs(d,time_arr,name):
     num_cps = d.get("num_cps",1)

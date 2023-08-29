@@ -92,7 +92,7 @@ def model_cases_seropositivity_dead(
 
         ifr_t = pt.sigmoid(
             delta_base
-            + cov19_ode.slow_modulation.sigmoidal_changepoints(
+            + cov19_ode.slow_modulation.sigmoidal_changepoints_invt(
                 ts_out=t_solve_ODE,
                 positions_cp=t_pos_fatality,
                 magnitudes_cp=Delta_rhos_fatality,
