@@ -121,12 +121,12 @@ def model_cases_seropositivity_dead(
         beta_t = R0 * gamma * reproduction_scale_t
 
         frac_S_0 = truncater("frac_S_0", dist=pm.Logistic.dist(100), lower=0, upper=100)/100 if not sim_model else 0.99
-        frac_R_0 = truncater("frac_R_0", dist=pm.Logistic.dist(0), lower=0, upper=100)/100 if not sim_model else 0.
+        frac_I_0 = truncater("frac_I_0", dist=pm.Logistic.dist(0), lower=0, upper=100)/100 if not sim_model else pt.clamp(100./N, min=0, max=1-frac_S_0)
 
         Naive_0 = frac_S_0 * N
         S_0 = 0.
-        R_0 = frac_R_0 * N
-        I_0 = pm.Deterministic("I_0", N - S_0 - R_0 - Naive_0)
+        I_0 = frac_I_0 * N
+        R_0 = pm.Deterministic("R_0", N - S_0 - I_0 - Naive_0)
         D_0 = truncater("D_0", dist=pm.Logistic.dist(0), lower=0) if not sim_model else 0.
 
         pm.Deterministic("beta_t", beta_t, dims=("t_solve_ODE",))
