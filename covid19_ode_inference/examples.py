@@ -51,9 +51,9 @@ def model_cases_seropositivity_dead(
         gamma = pm.Deterministic("gamma", 1 / inv_gamma)
 
         inv_epsilon = (
-            pm.Gamma("inv_epsilon", alpha=140, beta=1 / 0.1)
+            pm.Gamma("inv_epsilon", alpha=2000, beta=1 / 0.1)
             if not sim_model
-            else pt.as_tensor_variable(14)
+            else pt.as_tensor_variable(200)
         )
         epsilon = pm.Deterministic("epsilon", 1 / inv_epsilon)
 
