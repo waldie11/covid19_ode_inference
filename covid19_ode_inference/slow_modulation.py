@@ -102,7 +102,6 @@ def get_cpkwargs(d,time_arr,name):
     d_out[name+"_id"] = np.arange(num_cps)
     d_out["cp_interval_"+name] = [cp_interval]
     return d_out
-    return num_cps, cp_interval
 
 def priors_for_cps(
     name,
